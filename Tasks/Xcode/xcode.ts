@@ -170,6 +170,7 @@ async function run() {
         let xcode_otherCodeSignFlags: string;
         let xcode_codeSignIdentity: string;
         let xcode_provProfile: string;
+        let xcode_provProfileSpecifier: string;
         let xcode_devTeam: string;
 
         if (signingOption === 'nosign') {
@@ -178,14 +179,27 @@ async function run() {
         else if (signingOption === 'manual') {
             xcode_codeSignStyle = 'CODE_SIGN_STYLE=Manual';
 
-            let signIdentity: string = tl.getInput('signingIdentity');
+            const signIdentity: string = tl.getInput('signingIdentity');
             if (signIdentity) {
                 xcode_codeSignIdentity = 'CODE_SIGN_IDENTITY=' + signIdentity;
             }
 
             let provProfileUUID: string = tl.getInput('provisioningProfileUuid');
-            if (provProfileUUID) {
-                xcode_provProfile = 'PROVISIONING_PROFILE=' + provProfileUUID;
+            let provProfileName: string = tl.getInput('provisioningProfileName');
+
+            // If either value is set, override both .pbxproj settings. Testing indicates that
+            // PROVISIONING_PROFILE_SPECIFIER take precedence, if it's not empty.
+            if (provProfileUUID || provProfileName) {
+                if (!provProfileUUID) {
+                    provProfileUUID = "";
+                }
+
+                if (!provProfileName) {
+                    provProfileName = "";
+                }
+
+                xcode_provProfile = `PROVISIONING_PROFILE=${provProfileUUID}`;
+                xcode_provProfileSpecifier = `PROVISIONING_PROFILE_SPECIFIER=${provProfileName}`;
             }
         }
         else if (signingOption === 'auto') {
@@ -201,6 +215,7 @@ async function run() {
         xcb.argIf(xcode_codeSignStyle, xcode_codeSignStyle);
         xcb.argIf(xcode_codeSignIdentity, xcode_codeSignIdentity);
         xcb.argIf(xcode_provProfile, xcode_provProfile);
+        xcb.argIf(xcode_provProfileSpecifier, xcode_provProfileSpecifier);
         xcb.argIf(xcode_devTeam, xcode_devTeam);
 
         //--- Enable Xcpretty formatting ---
@@ -276,6 +291,7 @@ async function run() {
             xcodeArchive.argIf(xcode_codeSignStyle, xcode_codeSignStyle);
             xcodeArchive.argIf(xcode_codeSignIdentity, xcode_codeSignIdentity);
             xcodeArchive.argIf(xcode_provProfile, xcode_provProfile);
+            xcodeArchive.argIf(xcode_provProfileSpecifier, xcode_provProfileSpecifier);
             xcodeArchive.argIf(xcode_devTeam, xcode_devTeam);
             if (args) {
                 xcodeArchive.line(args);
